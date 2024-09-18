@@ -1,8 +1,10 @@
 const dbg = require("../lib/dbg");
+const notify = require("../routes/notify");
+const notifyEmmiter = notify.notifyEmmiter;
 dbgp = dbg.wsjtx;
 
-dbgp.enabled = true;
-//dbgp(" debug enabled!");
+dbgp.enabled = false;
+dbgp(" debug enabled!");
 
 //const cluster = require('node:cluster');
 const dgram = require("node:dgram");
@@ -37,10 +39,11 @@ server.on("message", (msg, rinfo) => {
       de_call: decodedMsg.de_call,
     };
     socket.emit("decode", decode);
+    notifyEmmiter.emit("wsjt", decode);
 
     //console.log(decode);
   } else if (decodedMsg.type == "status") {
-    dbgp(decodedMsg);
+    dbgp(decodedMsg.configuration_name);
     if (socket) {
       decodedMsg.freqency = Number(decodedMsg.freqency);
       socket.emit("status", decodedMsg);

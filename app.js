@@ -1,5 +1,5 @@
 const dbg = require("./lib/dbg");
-dbg.app.enabled = true;
+dbg.app.enabled = false;
 dbg.app("App debug enabled!"); //console.clear();
 
 console.log(
@@ -26,6 +26,9 @@ var logger = require("morgan");
 
 var indexRouter = require("./routes/index");
 var dataRouter = require("./routes/data");
+
+const notify = require("./routes/notify");
+const notifyRouter = notify.notifyRouter;
 
 var livereload = require("livereload");
 var connectLiveReload = require("connect-livereload");
@@ -134,6 +137,7 @@ app.get(
 app.use("/", indexRouter);
 
 app.use("/data", dataRouter); // Database lives under here!
+app.use("/notify", notifyRouter);
 
 /* GET file from views. */
 app.get("/\\w+", function (req, res, next) {

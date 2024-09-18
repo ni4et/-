@@ -19,6 +19,7 @@
     "ejs": "^3.1.10",
     "ejs-lint": "^0.1.1",
     "express": "^4.19.2",
+    "glob": "^11.0.0",
     "hamsuite.0": "file:",
     "http-errors": "~1.6.3",
     "jquery": "^3.7.1",

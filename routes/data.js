@@ -1,23 +1,23 @@
-'use strict';
+"use strict";
 // Database access:
 // all requests and responses are json
 
-var express = require('express');
+var express = require("express");
 var router = express.Router();
-var path = require('path');
-var parseADIF = require('../lib/parseADIF.js');
+var path = require("path");
+var parseADIF = require("../lib/parseADIF.js");
 
 // Load station settings json
 var stationSettingsPath = path.join(
   __dirname,
-  '../public/assets',
-  'stationSettings.json'
+  "../public/assets",
+  "stationSettings.json"
 );
 var stationSettings = require(stationSettingsPath);
 
 // https://expressjs.com/en/resources/middleware/multer.html
-const multer = require('multer');
-const { error } = require('console');
+const multer = require("multer");
+const { error } = require("console");
 const upload = multer({}); // Returns the Multer object set for memory storage by default.
 
 //-----------------
@@ -28,18 +28,19 @@ const upload = multer({}); // Returns the Multer object set for memory storage b
 // routes:
 // throw-away test and example function
 // Place holder for now
-router.post('/profile', upload.none(), function (req, res, next) {
+router.post("/profile", upload.none(), function (req, res, next) {
   // req.body contains the text fields
-  console.log(req);
+  console.log(req.body);
+  res.send("Thanks");
 });
 
-router.post('/upload', upload.single('files'), function (req, res, next) {
+router.post("/upload", upload.single("files"), function (req, res, next) {
   let recordCount = {};
   // req.body will hold the text fields, if there were any
   if (req.file) {
     uploadHandler(req, res)
       .then((count) => {
-        console.log('count= ', count);
+        console.log("count= ", count);
         recordCount = count;
       })
       .then(() => {
@@ -50,7 +51,7 @@ router.post('/upload', upload.single('files'), function (req, res, next) {
         });
       });
   } else {
-    res.json({ res: 'No file given' });
+    res.json({ res: "No file given" });
   }
 });
 
@@ -81,9 +82,9 @@ module.exports = router;
 // no async/await above here:
 
 // Rethinkdb initialization
-const r = require('rethinkdb');
+const r = require("rethinkdb");
 var connection = null;
-r.connect({ host: 'localhost', port: 28015 }, function (err, conn) {
+r.connect({ host: "localhost", port: 28015 }, function (err, conn) {
   if (err) throw err;
   connection = conn;
 });
@@ -94,18 +95,18 @@ let conn = null;
 (async () => {
   try {
     conn = await r.connect({
-      host: 'localhost',
+      host: "localhost",
       port: 28015,
     });
     databases = await r.dbList().run(conn);
     //console.log(databases);
   } catch {
-    console.log('in data.js: failed to open database, is it running?');
+    console.log("in data.js: failed to open database, is it running?");
   }
 })(); // () gets it called here.
 
 async function dbCheckAndCreate(database) {
-  console.log('dbCheckAndCreate ', database);
+  console.log("dbCheckAndCreate ", database);
   try {
     if (databases.indexOf(database) < 0) {
       // The database does not exist
@@ -114,9 +115,9 @@ async function dbCheckAndCreate(database) {
       await r.dbCreate(database).run(conn);
 
       const result = await Promise.all([
-        r.db(database).tableCreate('qso').run(conn),
-        r.db(database).tableCreate('meta').run(conn),
-        r.db(database).tableCreate('qrz').run(conn),
+        r.db(database).tableCreate("qso").run(conn),
+        r.db(database).tableCreate("meta").run(conn),
+        r.db(database).tableCreate("qrz").run(conn),
       ]);
       //console.log(result);
       databases.push(database);
@@ -130,7 +131,7 @@ async function dbCheckAndCreate(database) {
 
 // - upload support:
 async function uploadHandler(req, res) {
-  console.log('uploadHandler()');
+  console.log("uploadHandler()");
   const database = req.cookies.stationSettings_database;
   const go = await dbCheckAndCreate(database);
 
@@ -149,19 +150,19 @@ async function uploadHandler(req, res) {
 }
 
 async function headerCallback(hdr, options) {
-  console.log('headerCallback() ', hdr);
+  console.log("headerCallback() ", hdr);
   if (options.metaId) {
     const updateResult = await r
       .db(options.database)
-      .table('meta')
+      .table("meta")
       .get(options.metaId)
       .update(hdr)
       .run(conn);
-    console.log('headerCallback() result= ', updateResult);
+    console.log("headerCallback() result= ", updateResult);
   } else {
     const result = await r
       .db(options.database)
-      .table('meta')
+      .table("meta")
       .insert(hdr)
       .run(conn);
     options.metaId = result.generated_keys[0];
@@ -206,13 +207,13 @@ async function qsoCallback(qso, options) {
     wl = 300 / qso.freq;
   } else if (qso.band) {
     let band = qso.band;
-    if (band === 'submm') {
+    if (band === "submm") {
       wl = 0.001;
-    } else if (band.endsWith('mm')) {
+    } else if (band.endsWith("mm")) {
       wl = 0.001 * Number(band.substring(0, band.length - 2));
-    } else if (band.endsWith('cm')) {
+    } else if (band.endsWith("cm")) {
       wl = 0.01 * Number(band.substring(0, band.length - 2));
-    } else if (band.endsWith('m')) {
+    } else if (band.endsWith("m")) {
       wl = Number(band.substring(0, band.length - 1));
     } // Default wl=1
   }
@@ -234,11 +235,11 @@ async function qsoCallback(qso, options) {
   console.log(qso.time_on, qso.id);
   const result = await r
     .db(options.database)
-    .table('qso')
+    .table("qso")
     .insert(qso, {
-      durability: 'soft',
+      durability: "soft",
       returnChanges: true,
-      conflict: 'update',
+      conflict: "update",
     })
     .run(conn);
 

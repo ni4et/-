@@ -15,8 +15,8 @@
     <canvas
       id="etchasketch"
       style="border: 1px solid #000000"
-      width="500"
-      height="800"
+      width="1000"
+      height="1200"
     >
     </canvas>
 
@@ -45,21 +45,17 @@
       function show(showTime) {
         var c = document.getElementById("etchasketch");
         var ctx = c.getContext("2d");
-        ctx.font = "20px Arial";
+        //ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.font = "18px Arial";
+        //ctx.textBaseline = top;
         for (i in msgCache) {
           let phase = (msgCache[i].time / 15000) % 2;
-          if (showTime - 15000 < msgCache[i].time) {
-            ctx.clearRect(
-              10 + phase * 400,
-              (msgCache[i].delta_frequency - 400) / 3,
-              400,
-              22
-            );
-            ctx.fillText(
-              msgCache[i].message,
-              10 + phase * 400,
-              (msgCache[i].delta_frequency - 400) / 3
-            );
+          if (true) {
+            let x = (phase * canvas.width) / 2;
+            let y = msgCache[i].delta_frequency / 3;
+
+            //ctx.clearRect(x, y, canvas.width / 2, 10);
+            ctx.fillText(msgCache[i].message, x + 10, y);
           }
         }
       }
