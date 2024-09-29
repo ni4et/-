@@ -1,3 +1,4 @@
+const { htmlPrefilter } = require("jquery");
 const net = require("net");
 
 const host = "172.18.0.61";
@@ -21,6 +22,10 @@ client.on("error", (error) => {
   console.log(`Error: ${error.message}`);
 });
 
-client.on("close", () => {
+client.on("close", function () {
   console.log("Connection closed");
 });
+
+setTimeout(() => {
+  client.destroy();
+}, 15000);

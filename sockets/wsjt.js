@@ -3,7 +3,7 @@ const notify = require("../routes/notify");
 const notifyEmmiter = notify.notifyEmmiter;
 dbgp = dbg.wsjtx;
 
-dbgp.enabled = false;
+dbgp.enabled = true;
 dbgp(" debug enabled!");
 
 //const cluster = require('node:cluster');
@@ -36,18 +36,24 @@ server.on("message", (msg, rinfo) => {
       message: decodedMsg.message,
       type: decodedMsg.message_decode.type,
       time: decodedMsg.time,
-      de_call: decodedMsg.de_call,
+      de_call: decodedMsg.message_decode.de_call,
     };
+    console.log("decode= ", decode);
     socket.emit("decode", decode);
     notifyEmmiter.emit("wsjt", decode);
 
-    //console.log(decode);
+    console.log(decode);
   } else if (decodedMsg.type == "status") {
-    dbgp(decodedMsg.configuration_name);
+    dbgp(
+      decodedMsg.freqency,
+      decodedMsg.mode,
+      decodedMsg.transmitting,
+      decodedMsg.tx_df,
+      decodedMsg.tx_enabled
+    );
     if (socket) {
       decodedMsg.freqency = Number(decodedMsg.freqency);
       socket.emit("status", decodedMsg);
-      dbgp(decodedMsg.time);
     }
   }
 });

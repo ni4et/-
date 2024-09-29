@@ -105,6 +105,8 @@ let conn = null;
   }
 })(); // () gets it called here.
 
+// Check for the existence of the requested databases and tables. If not there then
+// create them.  Completely transparent to user.
 async function dbCheckAndCreate(database) {
   console.log("dbCheckAndCreate ", database);
   try {
@@ -120,7 +122,23 @@ async function dbCheckAndCreate(database) {
         r.db(database).tableCreate("qrz").run(conn),
       ]);
       //console.log(result);
-      databases.push(database);
+      databases.push(database); // Add to the internal list of known databases.
+      const index1 = await r
+        .db(database)
+        .table("qso")
+        .indexCreate("call")
+        .run(conn);
+      const index2 = await r
+        .db(database)
+        .table("qso")
+        .indexCreate("band")
+        .run(conn);
+      const index3 = await r
+        .db(database)
+        .table("qso")
+        .indexCreate("mode")
+        .run(conn);
+      console.log(index1, index2, index3);
     }
     return true;
   } catch (error) {
@@ -130,6 +148,10 @@ async function dbCheckAndCreate(database) {
 }
 
 // - upload support:
+// When the upload route is called this will run.
+// Test the databases.
+// parse the incoming file and record in the qso & meta databases.
+// Send back a report.
 async function uploadHandler(req, res) {
   console.log("uploadHandler()");
   const database = req.cookies.stationSettings_database;
@@ -149,6 +171,8 @@ async function uploadHandler(req, res) {
   return Promise.resolve(recordCount);
 }
 
+// Called by parseADIF when a header is encountered and also
+// when a qso field defines a new type.
 async function headerCallback(hdr, options) {
   console.log("headerCallback() ", hdr);
   if (options.metaId) {
@@ -168,14 +192,24 @@ async function headerCallback(hdr, options) {
     options.metaId = result.generated_keys[0];
   }
 }
+
+// called when a qso record is added during an upload.
+// options contains the id of the associated metadata record.
+// ADIF fields are uppercase and internal representations are
+// lower case and prefixed with an '_'.  This should allow checks to
+// prevent them from leaking out.
+// Date/time info is converted to native javascript reprentation.
+// The database key is synthesized from the time_on and band fields. This
+// is expected to generate unique keys in almost all cases.
+
 async function qsoCallback(qso, options) {
   // Variables to be set inside if statements:
   let wl = 1; // In case none specified
   let lnWl;
 
   // converts the qso times to native dates:
-  let qdate = qso.qso_date; // These are strings
-  let qtim = qso.time_on;
+  let qdate = qso.QSO_DATE; // These are strings
+  let qtim = qso.TIME_ON;
   let qy = Number(qdate.substring(0, 4));
   let qmo = Number(qdate.substring(4, 6)) - 1;
   let qdy = Number(qdate.substring(6, 8));
@@ -185,9 +219,9 @@ async function qsoCallback(qso, options) {
   let dateUTC = Date.UTC(qy, qmo, qdy, qh, qm, qs); // Needed for id
   qso._time_on = new Date(dateUTC);
 
-  if (qso.qso_date_off) {
-    qdate = qso.qso_date_off; // These are strings
-    qtim = qso.time_off;
+  if (qso.QSO_DATE_OFF) {
+    qdate = qso.QSO_DATE_OFF; // These are strings
+    qtim = qso.TIME_OFF;
     qy = Number(qdate.substring(0, 4));
     qmo = Number(qdate.substring(4, 6)) - 1;
     qdy = Number(qdate.substring(6, 8));
@@ -201,12 +235,16 @@ async function qsoCallback(qso, options) {
   // This gives us a good probability that an id generated this way will be
   // unique. A single operator wouldnt generate 2 qsos in the same second,
   // a large contest operation might, but not in the same band.
-  // We can still use id to to time searches since these are usually ranges.
-  if (qso.freq) {
-    qso.freq = Number(qso.freq);
-    wl = 300 / qso.freq;
-  } else if (qso.band) {
-    let band = qso.band;
+  // We can still use id to do time searches since these are usually ranges.
+  // The freauency or alternately the band is converted to a wavelength. The
+  // log of the wavelength is scaled and added to the time in the milliseconds
+  // part.
+
+  if (qso.FREQ) {
+    qso.freq = Number(qso.FREQ);
+    wl = 300 / qso.FREQ;
+  } else if (qso.BAND) {
+    let band = toLowecase(qso.BAND);
     if (band === "submm") {
       wl = 0.001;
     } else if (band.endsWith("mm")) {
@@ -232,7 +270,7 @@ async function qsoCallback(qso, options) {
   if (options.metaId) {
     qso._metaId = options.metaId;
   }
-  console.log(qso.time_on, qso.id);
+
   const result = await r
     .db(options.database)
     .table("qso")
@@ -242,6 +280,7 @@ async function qsoCallback(qso, options) {
       conflict: "update",
     })
     .run(conn);
+  //console.log(result.changes);
 
   return Promise.resolve(result);
 }

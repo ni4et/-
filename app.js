@@ -119,6 +119,7 @@ app.set("query parser", function (str) {
 
 // Files in 'public' appear at the top level.
 app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, "@unit_test"))); // For testing only
 
 // Serves node_modules as /assets/npm, to facilite popper and bootstrap.
 // Urls for these are C/P with minimal editing.
